@@ -16,7 +16,7 @@ function Extension() {
     (async () => {
       try {
         const response = await fetch(
-          "https://misha-checkout-upsell-app.onrender.com/app/upsell-list",
+          "https://misha-checkout-upsell-app.onrender.com/upsell-list-api",
         );
 
         if (!response.ok) {
