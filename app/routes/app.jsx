@@ -4,6 +4,14 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
+  // Якщо це API запит, не вимагаємо admin auth (для checkout extension)
+  const url = new URL(request.url);
+  if (url.pathname.endsWith("/api") || url.pathname.includes("/api/")) {
+    // Пропускаємо admin auth для API ендпоінтів
+    // eslint-disable-next-line no-undef
+    return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  }
+
   await authenticate.admin(request);
 
   // eslint-disable-next-line no-undef
