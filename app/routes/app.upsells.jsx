@@ -41,9 +41,90 @@ export const loader = async ({request}) => {
   return {products, upsellProductIds};
 };
 
+// Функція для оновлення shop metafield з upsell products
+async function updateShopMetafield(admin, shop) {
+  try {
+    // Отримуємо поточний список upsell products з БД
+    const upsellRows = await prisma.upsellProduct.findMany({
+      where: {shop},
+    });
+    const productIds = upsellRows.map((row) => row.productId);
+    
+    console.log("🔄 [app.upsells] Updating metafield with", productIds.length, "products");
+    
+    // Спочатку отримуємо shop ID
+    const shopResponse = await admin.graphql(
+      `#graphql
+        query GetShop {
+          shop {
+            id
+          }
+        }
+      `
+    );
+    
+    const shopData = await shopResponse.json();
+    const shopId = shopData.data?.shop?.id;
+    
+    if (!shopId) {
+      console.error("❌ [app.upsells] Failed to get shop ID");
+      return;
+    }
+    
+    console.log("✅ [app.upsells] Shop ID:", shopId);
+    
+    // Оновлюємо metafield через GraphQL
+    const metafieldResponse = await admin.graphql(
+      `#graphql
+        mutation UpdateShopMetafield($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields {
+              id
+              namespace
+              key
+              value
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `,
+      {
+        variables: {
+          metafields: [
+            {
+              ownerId: shopId,
+              namespace: "upsell",
+              key: "products",
+              value: JSON.stringify({productIds}),
+              type: "json",
+            },
+          ],
+        },
+      }
+    );
+    
+    const result = await metafieldResponse.json();
+    console.log("📋 [app.upsells] Metafield update result:", JSON.stringify(result, null, 2));
+    
+    if (result.data?.metafieldsSet?.userErrors?.length > 0) {
+      console.error("❌ [app.upsells] Metafield update errors:", result.data.metafieldsSet.userErrors);
+    } else {
+      console.log("✅ [app.upsells] Shop metafield updated successfully with", productIds.length, "products");
+    }
+  } catch (error) {
+    console.error("❌ [app.upsells] Failed to update shop metafield:", error);
+    console.error("   Error message:", error?.message);
+    console.error("   Error stack:", error?.stack);
+    // Не кидаємо помилку, бо це не критично
+  }
+}
+
 // Action: додаємо/видаляємо продукти в upsell-списку в БД
 export const action = async ({request}) => {
-  const {session} = await authenticate.admin(request);
+  const {admin, session} = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
@@ -62,9 +143,16 @@ export const action = async ({request}) => {
           productId,
         },
       });
+      console.log("✅ [app.upsells] Product added to DB:", productId);
     } catch (error) {
       // Якщо запис уже існує (через @@unique), просто ігноруємо
+      console.log("⚠️ [app.upsells] Product already exists:", productId);
     }
+    
+    // Оновлюємо metafield в Shopify
+    console.log("🔄 [app.upsells] Updating metafield after add...");
+    await updateShopMetafield(admin, shop);
+    
     return {ok: true};
   }
 
@@ -75,6 +163,12 @@ export const action = async ({request}) => {
         productId,
       },
     });
+    console.log("✅ [app.upsells] Product removed from DB:", productId);
+    
+    // Оновлюємо metafield в Shopify
+    console.log("🔄 [app.upsells] Updating metafield after remove...");
+    await updateShopMetafield(admin, shop);
+    
     return {ok: true};
   }
 
