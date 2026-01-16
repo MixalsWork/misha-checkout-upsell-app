@@ -2,7 +2,7 @@
 
 client_id = "49e553b209876562cd527173cf2d4437"
 name = "misha-checkout-upsell-app"
-application_url = "https://example.com"
+application_url = "https://misha-checkout-upsell-app.onrender.com"
 embedded = true
 
 [build]
@@ -25,4 +25,4 @@ api_version = "2026-04"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://misha-checkout-upsell-app.onrender.com/auth/callback" ]
