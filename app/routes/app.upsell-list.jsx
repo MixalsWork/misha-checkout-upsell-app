@@ -5,6 +5,8 @@ const DEV_SHOP = "misha-checkout-upsell-app.myshopify.com";
 
 // GET /app/upsell-list
 export const loader = async () => {
+  console.log("HIT /app/upsell-list loader (no auth)");
+
   const shop = DEV_SHOP;
 
   const upsellRows = await prisma.upsellProduct.findMany({
