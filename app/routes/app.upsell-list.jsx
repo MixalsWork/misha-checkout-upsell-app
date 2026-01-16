@@ -1,10 +1,11 @@
 import prisma from "../db.server";
-import {authenticate} from "../shopify.server";
+
+// У DEV-варіанті беремо shop жорстко (один dev-store)
+const DEV_SHOP = "misha-checkout-upsell-app.myshopify.com";
 
 // GET /app/upsell-list
-export const loader = async ({request}) => {
-  const {session} = await authenticate.admin(request);
-  const shop = session.shop;
+export const loader = async () => {
+  const shop = DEV_SHOP;
 
   const upsellRows = await prisma.upsellProduct.findMany({
     where: {shop},
