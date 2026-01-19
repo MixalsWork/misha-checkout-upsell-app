@@ -26,8 +26,6 @@ function Extension() {
           throw new Error("Shopify query API not available");
         }
 
-        // Отримуємо product IDs з metafield
-        console.log("📤 [Checkout Extension] Getting product IDs from metafield");
         
         const metafieldResult = await shopify.query(
           `#graphql
